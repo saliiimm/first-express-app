@@ -1,6 +1,16 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const port = 3000;
+
+app.use(express.json());
+express.urlencoded({ extended: true });
+app.use(
+  cors({
+    origin: 'https://salimwebsite.com',
+    credentials: true,
+  })
+);
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
@@ -18,6 +28,7 @@ app.get('/products', (req, res) => {
 });
 app.get('/products/:id', (req, res) => {
   const { id } = req.params;
+  const { nom, prenom, adress } = req.body;
   //search in the db product with this id
   return res
     .status(200)
