@@ -1,7 +1,10 @@
 const express = require('express');
 const cors = require('cors');
+const Game = require('./src/models/Game');
 const app = express();
 const port = 3000;
+
+require('./src/config/connectDb');
 
 app.use(express.json());
 express.urlencoded({ extended: true });
@@ -16,37 +19,81 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
-app.get('/products', (req, res) => {
-  const products = [
-    { id: 1, name: 'PS5', price: 500000 },
-    { id: 2, name: 'Manette PS5', price: 10000 },
-    { id: 3, name: 'Fifa 25', price: 9000 },
-  ];
-  return res
-    .status(200)
-    .json({ message: 'Products retrieved successfully', products: products });
+app.post('/products', async (req, res) => {
+  const { name, category, minimumAge, price } = req.body;
+  try {
+    const newproduct = new Game({ name, category, minimumAge, price });
+    await newproduct.save();
+    return res
+      .status(201)
+      .json({ message: 'product saved succesfully', newproduct: newproduct });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: 'An error occured with the server!' });
+  }
 });
-app.get('/products/:id', (req, res) => {
-  const { id } = req.params;
-  const { nom, prenom, adress } = req.body;
-  //search in the db product with this id
-  return res
-    .status(200)
-    .json({ message: `Product with id ${id}  retrieved successfully` });
+app.get('/products', async (req, res) => {
+  try {
+    const products = await Game.find();
+    return res
+      .status(200)
+      .json({ message: 'Products retrieved successfully', products: products });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: 'An error occured with the server!' });
+  }
 });
-app.patch('/products/:id', (req, res) => {
-  const { id } = req.params;
-  //simulate a change
-  return res
-    .status(200)
-    .json({ message: `Product with id ${id} changed successfully` });
+app.get('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Game.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found!' });
+    }
+    return res.status(200).json({
+      message: `Product with id ${id}  retrieved successfully`,
+      product: product,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: `Error occured with the server` });
+  }
 });
-app.delete('/products/:id', (req, res) => {
-  const { id } = req.params;
-  //simulate a delete in the db
-  return res
-    .status(200)
-    .json({ message: `Product with id ${id} deleted successfully` });
+app.patch('/products/change-price/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { price } = req.body;
+    const updatedProduct = await Game.findByIdAndUpdate(
+      id,
+      { price: price },
+      {
+        new: true,
+      }
+    );
+    if (!updatedProduct) {
+      return res.status(404).json({ message: 'Product not found!' });
+    }
+    await updatedProduct.save();
+    return res.status(200).json({
+      message: `Product with id ${id} changed successfully`,
+      updatedProduct: updatedProduct,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: `Error occured with the server` });
+  }
+});
+app.delete('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedProduct = await Game.findByIdAndDelete(id);
+    if (!deletedProduct) {
+      return res.status(404).json({ message: 'Product not found!' });
+    }
+    return res.status(200).json({ message: `Product  deleted successfully` });
+  } catch (err) {
+    return res.status(500).json({ message: `Error occured with the server` });
+  }
 });
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
